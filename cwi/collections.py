@@ -1,4 +1,4 @@
-import ee
+# import ee
 from cwi.bmath import *
 
 
@@ -14,11 +14,11 @@ class S2CloudProb:
             ee.ImageCollection("COPERNICUS/S2_SR")
             .filterDate(self.start, self.end)
             .filterBounds(self.aoi)
-            .filter(ee.Filter.eq("CLOUDY_PIXEL_PERCENTAGE", self.cld_px))
+            .filter(ee.Filter.lte("CLOUDY_PIXEL_PERCENTAGE", self.cld_px))
         )
 
         cld_prob = (
-            ee.ImageCollection("COPERNICUS/S2_SR")
+            ee.ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")
             .filterDate(self.start, self.end)
             .filterBounds(self.aoi)
         )
@@ -37,7 +37,7 @@ class S2CloudProb:
 
 
 class Sentinel2Builder:
-    DOY = {"spring": (), "summer": (), "fall": ()}
+    DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
 
     def __init__(self, col: ee.ImageCollection):
         self.collection = col
@@ -69,6 +69,8 @@ class Sentinel2Builder:
 
 
 class Sentinel1DVBuilder:
+    DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
+
     def __init__(self):
         self.collection = ee.ImageCollection("COPERNICUS/S1_GRD")
 
@@ -111,11 +113,9 @@ class Sentinel1DVBuilder:
         return self
 
     def build(self) -> ee.Image:
-        spri_filter = None
-        summ_filter = None
         return ee.Image.cat(
-            self._collection.filter(spri_filter).median(),
-            self._collection.filter(summ_filter).median(),
+            self._collection.filter(ee.Filter.dayOfYear(*self.DOY["spring"])).median(),
+            self._collection.filter(ee.Filter.dayOfYear(*self.DOY["summer"])).median(),
         )
 
 
