@@ -4,25 +4,34 @@ import cwi
 
 
 def main():
-    s2_cld_prb = cwi.S2CloudProb(aoi, start=2018, end=2020).get_collection()
+    table = ee.FeatureCollection(
+        "projects/earthengine-legacy/assets/users/ryangilberthamilton/randForestTrain_bq"
+    )
+    aoi = table.geometry().bounds()
+
+    cloud_prob = cwi.S2CloudProb(
+        aoi, start="2019-04-01", end="2019-10-31"
+    ).get_collection()
+
     # trim collection by day of year
 
     s2_cloudless = (
-        cwi.S2Cloudless(s2_cld_prb)
+        cwi.S2CloudlessBuilder(cloud_prob)
         .add_cloud_bands()
         .add_shadow_bands()
+        .add_cld_shdw_mask()
         .apply_cld_shdw_mask()
         .build()
     )
 
     s2bldr = (
-        cwi.Sentinel2Builder(s2_cloudless)
+        cwi.Sentinel2Builder(s2_cloudless.collection)
         .add_savi()
         .add_ndvi()
         .add_tasseled_cap()
         .build()
     )
-
+    b = " "
     s1bldr = (
         cwi.Sentinel1DVBuilder()
         .filter_date()
@@ -55,4 +64,5 @@ def main():
 
 
 if __name__ == "__main__":
+    ee.Initialize()
     main()

@@ -108,7 +108,7 @@ class S2CloudlessBuilder:
         return self
 
     def add_cld_shdw_mask(self):
-        self.collection = self.collection.map(add_cloud_bands(self.BUFFER))
+        self.collection = self.collection.map(add_cld_shdw_mask(self.BUFFER))
         return self
 
     def apply_cld_shdw_mask(self):
