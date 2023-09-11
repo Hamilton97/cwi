@@ -100,7 +100,7 @@ class Sentinel1DVBuilder:
 
     def denoise(self):
         self._collection = self._collection.map(
-            lambda x: x.convovle(ee.Kernel.square(1))
+            lambda x: x.convolve(ee.Kernel.square(1))
         )
         return self
 
@@ -129,7 +129,7 @@ class ALOS2Builder:
 
     def denoise(self):
         self._collection = self._collection.map(
-            lambda x: x.convovle(ee.Kernel.square(1))
+            lambda x: x.convolve(ee.Kernel.square(1))
         )
         return self
 
@@ -142,7 +142,7 @@ class ALOS2Builder:
         return self
 
     def build(self) -> ee.ImageCollection:
-        return self._collection
+        return self._collection.first()
 
 
 class NASADEMBuilder:
@@ -153,6 +153,10 @@ class NASADEMBuilder:
         self.image = self.image.addBands(
             ee.Terrain.slope(self.image.select("elevation"))
         )
+        return self
+
+    def select(self):
+        self.image = self.image.select("elevation")
         return self
 
     def build(self) -> ee.Image:
@@ -202,19 +206,21 @@ class TrainingPoints:
         labels = self.collection.aggregate_array(self.label_col).distinct()
         order = ee.List.sequence(1, labels.size()) if order is None else order
 
-        lookup = ee.Dictionary.fromList(labels, order)
+        lookup = ee.Dictionary.fromLists(labels, order)
         self.collection = self.collection.map(
             lambda x: x.set("value", lookup.get(x.get(self.label_col)))
         )
+        self.__append_prop("value")
         return self
 
-    def sample_regions(self, image):
+    def sample_regions(self, image, scale: int = 10, tile_scale: int = 16):
         samples = image.sampleRegions(
-            collection=self.collection, properties=self.props, tileScale=16, scale=10
+            collection=self.collection,
+            properties=self.props,
+            tileScale=tile_scale,
+            scale=scale,
         )
-        props = self.props
-        self.collection = TrainingPoints(samples, self.label_col)
-        self.collection.props = props
+        self.collection = samples
         return self
 
     def build(self) -> ee.FeatureCollection:

@@ -1,3 +1,13 @@
+# Canadian Wetland Inventory (CWI)
+Provide standard tool set to complete the rest of the country. Everything south of 60, excluding the 14 priority areas
+
+## Installation
+```shell
+pip install -e .
+```
+
+## Example Usage
+```python
 import ee
 
 import cwi
@@ -63,9 +73,11 @@ def main():
         .sample_regions(stack)
         .build()
     )
-
+    
+    train = tp.filter(ee.Filter.lte('random', 0.7))
+    test = tp.filter(ee.Filter.gt('random', 0.7))
     rfmodel = cwi.RandomForestClassifier().train(
-        features=tp, class_property="value", predictors=stack.bandNames()
+        features=train, class_property="value", predictors=stack.bandNames()
     )
 
     classification = rfmodel.classify(stack)
@@ -74,3 +86,5 @@ def main():
 if __name__ == "__main__":
     ee.Initialize()
     main()
+
+```
