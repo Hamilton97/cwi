@@ -1,10 +1,10 @@
 from typing import Callable
 from cwi.server.bmath import *
+from cwi.server.cmasking import mask_l8_sr
 
 
 
 class LandSAT8Builder:
-    DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
     def __init__(self) -> None:
         self.collection: ee.ImageCollection = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
     
@@ -23,12 +23,16 @@ class LandSAT8Builder:
         self.collection = self.collection.filterBounds(geometry)
         return self
     
-    def filter_by_date(self, *args):
-        self.collection = self.collection.filterDate(*args)
+    def filter_by_date(self):
+        self.collection = self.collection.filterDate('2018', '2020')
         return self
     
-    def add_cloud_mask(self, func: Callable):
-        self.collection = self.collection.map(func)
+    def add_doy_filter(self):
+        self.collection = self.colleciton.filter(ee.Filter.dayOfYear(135, 288))
+        return self
+    
+    def add_cloud_mask(self):
+        self.collection = self.collection.map(mask_l8_sr)
         return self
     
     def add_ndvi(self):
@@ -58,26 +62,18 @@ class LandSAT8Builder:
 
 
 class Sentinel1DVBuilder:
-    DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
-
+    POL = {'DV': 'V.*' }
     def __init__(self):
         self.collection = ee.ImageCollection("COPERNICUS/S1_GRD")
+        self.pol = 'DV'
 
-    @property
-    def collection(self):
-        return self._collection
-
-    @collection.setter
-    def collection(self, col):
-        self._collection = self._filter_dv(col)
-
-    @staticmethod
-    def _filter_dv(col) -> ee.ImageCollection:
-        return (
-            col.filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
-            .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
-            .filter(ee.Filter.eq("instrumentMode", "IW"))
-        )
+    def set_dv_collection(self) -> ee.ImageCollection:
+        self.collection = self.collection.filter(ee.Filter([
+            ee.Filter.listContains("transmitterReceiverPolarisation", "VV"),
+            ee.Filter.listContains("transmitterReceiverPolarisation", "VH"),
+            ee.Filter.eq("instrumentMode", "IW")
+        ]))
+        return self
 
     def filter_date(self, start, end):
         self._collection = self._collection.filterDate(start, end)
@@ -98,14 +94,11 @@ class Sentinel1DVBuilder:
         return self
 
     def select_bands(self):
-        self._collection = self._collection.select("V.*")
+        self._collection = self._collection.select(self.POL[self.pol])
         return self
 
-    def build(self) -> ee.Image:
-        return ee.Image.cat(
-            self._collection.filter(ee.Filter.dayOfYear(*self.DOY["spring"])).median(),
-            self._collection.filter(ee.Filter.dayOfYear(*self.DOY["summer"])).median(),
-        )
+    def build(self):
+        return self
 
 
 class ALOS2Builder:
@@ -131,25 +124,25 @@ class ALOS2Builder:
         return self
 
     def build(self) -> ee.ImageCollection:
-        return self._collection.first()
+        return self
 
 
 class NASADEMBuilder:
     def __init__(self):
-        self.image = ee.Image("NASA/NASADEM_HGT/001")
+        self.collection = ee.Image("NASA/NASADEM_HGT/001")
 
     def add_slope(self):
-        self.image = self.image.addBands(
-            ee.Terrain.slope(self.image.select("elevation"))
+        self.collection = self.collection.addBands(
+            ee.Terrain.slope(self.collection.select("elevation"))
         )
         return self
 
     def select(self):
-        self.image = self.image.select("elevation")
+        self.collection = self.collection.select("elevation")
         return self
 
-    def build(self) -> ee.Image:
-        return self.image
+    def build(self):
+        return self
 
 
 class TrainingPointsBuilder:
