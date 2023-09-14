@@ -2,10 +2,20 @@
 Provide standard tool set to complete the rest of the country. Everything south of 60, excluding the 14 priority areas
 
 ## Installation
+### Dev Mode
 ```shell
 pip install -e .
 ```
-
+### From source
+```shell
+pip install build
+```
+```shell
+python -m build .
+```
+```shell
+pip install dist/somefile.gz.tar
+```
 ## Example Usage
 ```python
 import ee
