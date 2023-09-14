@@ -1,45 +1,13 @@
 # import ee
+from typing import Callable
 from cwi.bmath import *
 
-
-class S2CloudProb:
-    def __init__(self, aoi, start, end, cld_px: int = 60):
-        self.aoi = aoi
-        self.start = start
-        self.end = end
-        self.cld_px = cld_px
-
-    def get_collection(self) -> ee.ImageCollection:
-        sr = (
-            ee.ImageCollection("COPERNICUS/S2_SR")
-            .filterDate(self.start, self.end)
-            .filterBounds(self.aoi)
-            .filter(ee.Filter.lte("CLOUDY_PIXEL_PERCENTAGE", self.cld_px))
-        )
-
-        cld_prob = (
-            ee.ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")
-            .filterDate(self.start, self.end)
-            .filterBounds(self.aoi)
-        )
-
-        return ee.ImageCollection(
-            ee.Join.saveFirst("s2cloudless").apply(
-                **{
-                    "primary": sr,
-                    "secondary": cld_prob,
-                    "condition": ee.Filter.equals(
-                        **{"leftField": "system:index", "rightField": "system:index"}
-                    ),
-                }
-            )
-        )
 
 
 class LandSAT8Builder:
     DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
     def __init__(self) -> None:
-        self.collection: ee.ImageCollection = ee.ImageCollection("")
+        self.collection: ee.ImageCollection = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
     
     @property
     def collection(self) -> None:
@@ -60,53 +28,34 @@ class LandSAT8Builder:
         self.collection = self.collection.filterDate(*args)
         return self
     
+    def add_cloud_mask(self, func: Callable):
+        self.collection = self.collection.map(func)
+        return self
+    
     def add_ndvi(self):
-        self.collection = self.collection.map(ndvi())
+        self.collection = self.collection.map(ndvi(nir='SR_B6', red='SR_B4'))
         return self
     
     def add_savi(self):
-        self.collection = self.collection.map(savi())
+        self.collection = self.collection.map(savi(nir='SR_B6', red='SR_B4'))
         return self
         
     def add_tasseled_cap(self):
-        self.collection = self.collection.map(tasseled_cap())
+        self.collection = self.collection.map(tasseled_cap(
+            blue='SR_B2',
+            green='SR_B3',
+            red='SR_B4',
+            swir1='SR_B6',
+            swir2='SR_B7'
+        ))
+        return self
+    
+    def select_spectral_bands(self):
+        self.collection = self.collection.select("SR_.*")
         return self
 
     def build(self):
         return self
-    
-    
-
-class Sentinel2Builder:
-    DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
-
-    def __init__(self, col: ee.ImageCollection):
-        self.collection = col
-
-    def add_ndvi(self):
-        calc = ndvi("B8", "B4")
-        self.collection = self.collection.map(calc)
-        return self
-
-    def add_savi(self):
-        self.collection = self.collection.map(savi("B8", "B4"))
-        return self
-
-    def add_tasseled_cap(self):
-        self.collection = self.collection.map(
-            tasseled_cap("B2", "B3", "B4", "B8", "B11", "B12")
-        )
-        return self
-
-    def build(self):
-        spri_filter = ee.Filter.dayOfYear(*self.DOY["spring"])
-        summ_filter = ee.Filter.dayOfYear(*self.DOY["summer"])
-        fall_filter = ee.Filter.dayOfYear(*self.DOY["fall"])
-        return ee.Image.cat(
-            self.collection.filter(spri_filter).median(),
-            self.collection.filter(summ_filter).median(),
-            self.collection.filter(fall_filter).median(),
-        )
 
 
 class Sentinel1DVBuilder:
