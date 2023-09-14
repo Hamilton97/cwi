@@ -214,7 +214,9 @@ class TrainingPointsBuilder:
         return self
     
     def set_xy_geometry(self):
-        pass
+        if ['x', 'y'] not in self.props:
+            raise ValueError("xy not in props, you need to add x,y columns to dataset")
+        self.collection = self.collection.map(lambda elem: elem.setGeometry(ee.Geometry.Point([elem.get('x'), elem.get('y')])))
 
     def build(self) -> ee.FeatureCollection:
         return self.collection
