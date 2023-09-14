@@ -36,6 +36,47 @@ class S2CloudProb:
         )
 
 
+class LandSAT8Builder:
+    DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
+    def __init__(self) -> None:
+        self.collection: ee.ImageCollection = ee.ImageCollection("")
+    
+    @property
+    def collection(self) -> None:
+        return self._collection
+
+    @collection.setter
+    def collection(self, collection: ee.ImageCollection):
+        if not isinstance(collection, ee.ImageCollection):
+            raise TypeError("Collection must be an ImageCollection")
+        else:
+            self._collection = collection
+
+    def filter_by_geometry(self, geometry: ee.Geometry):
+        self.collection = self.collection.filterBounds(geometry)
+        return self
+    
+    def filter_by_date(self, *args):
+        self.collection = self.collection.filterDate(*args)
+        return self
+    
+    def add_ndvi(self):
+        self.collection = self.collection.map(ndvi())
+        return self
+    
+    def add_savi(self):
+        self.collection = self.collection.map(savi())
+        return self
+        
+    def add_tasseled_cap(self):
+        self.collection = self.collection.map(tasseled_cap())
+        return self
+
+    def build(self):
+        return self
+    
+    
+
 class Sentinel2Builder:
     DOY = {"spring": (135, 181), "summer": (182, 243), "fall": (244, 288)}
 
