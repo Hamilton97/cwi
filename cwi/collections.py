@@ -153,7 +153,7 @@ class NASADEMBuilder:
         return self.image
 
 
-class TrainingPoints:
+class TrainingPointsBuilder:
     def __init__(self, feat_col, label_col):
         self.collection = feat_col
         self.label_col = label_col
@@ -212,6 +212,9 @@ class TrainingPoints:
         )
         self.collection = samples
         return self
+    
+    def set_xy_geometry(self):
+        pass
 
     def build(self) -> ee.FeatureCollection:
         return self.collection
