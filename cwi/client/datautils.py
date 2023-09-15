@@ -51,13 +51,17 @@ class DataSetBuilder:
         self.data = None
         self.layer = None
 
-    def get_files(self, pattern: str):
+    def get_files(self, root_dir: str):
         """gets files that match a pattern"""
-        files = glob(pattern, recursive=True)
+        shp_files = []
+        for root, dirs, files in os.walk(root_dir):
+            for file in files:
+                if "training" in file and file.endswith(".shp"):
+                    shp_files.append(os.path.join(root, file))
         if len(files) == 0:
-            raise ValueError("The pattern {pattern} returned an empty list")
+            raise ValueError(f"No Shapefiles in this directory: {root_dir}")
 
-        self.data = files
+        self.data = shp_files
         return self
 
     def load_files(self) -> dict[int, gpd.GeoDataFrame]:
@@ -111,10 +115,17 @@ class DataSetBuilder:
         self.data = pd.merge(self.data, lookup, on=on, how="inner")
         return self
 
+    def select_south_of_60(self):
+        with open(os.path.join(PACKAGEDIR, "data", "south_of_60"), "rb") as file:
+            filter = pickle.load(file)
+        filter_polygon = filter.geometry.iloc[0]
+        self.data = self.data[self.data.geometry.intersects(filter_polygon)]
+        return self
+
     def write(self):
         dst = os.path.join(PACKAGEDIR, "data", "raw")
         with open(dst, "wb") as file:
-            pickle.dump({"all": self.data}, file)
+            pickle.dump(self.data, file)
         return self
 
 
@@ -144,13 +155,7 @@ class TableDataSets:
         self.ds: dict = {}
 
     def load(self):
-        with open(os.path.join(PACKAGEDIR, "data", "raw"), "rb") as file:
-            raw = pickle.load(file)
-        self.ds["raw"] = raw
-        with open(os.path.join(PACKAGEDIR, "data", "processed"), "rb") as file:
-            processed = pickle.load(file)
-        self.ds["processed"] = processed
-        return self
+        pass
 
     def list_datasets(self):
         return list(self.ds.keys())
