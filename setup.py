@@ -8,4 +8,5 @@ if __name__ == "__main__":
         author="Ryan Hamilton",
         package_dir={" ": "cwi"},
         packages=find_packages(where="cwi", include=["cwi", "cwi.*"]),
+        entry_points={"console_scripts": ["cwiops = cwi.cli:cli"]},
     )

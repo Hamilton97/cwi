@@ -129,25 +129,13 @@ class DataSetBuilder:
         return self
 
 
-class SamplePopulation:
-    def __init__(self, df: gpd.GeoDataFrame, n=650) -> None:
-        self.data = df
-        self.n = n
-        self.samples = None
-
-    def sample_population(self):
-        samples = []
-        df = self.data.groupby("ECOZONE_ID")
-        for _, group_df in df:
-            samples.append(group_df.groupby("class_name").sample(n=self.n))
-        self.samples = gpd.GeoDataFrame(pd.concat(samples).reset_index(drop=True))
-        return self
-
-    def write(self):
-        dst = os.path.join(PACKAGEDIR, "data", "processed")
-        with open(dst, "wb") as file:
-            pickle.dump(self.samples, file)
-        return self
+def sample_population():
+    samples = []
+    df = self.data.groupby("ECOZONE_ID")
+    for _, group_df in df:
+        samples.append(group_df.groupby("class_name").sample(n=self.n))
+    self.samples = gpd.GeoDataFrame(pd.concat(samples).reset_index(drop=True))
+    return self
 
 
 class TableDataSets:
