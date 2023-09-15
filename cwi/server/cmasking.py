@@ -3,7 +3,7 @@ import ee
 from typing import Callable
 
 
-def mask_l8_sr(image: ee.Iamge) -> ee.Image:
+def mask_l8_sr(image: ee.Image) -> ee.Image:
     qaMask = image.select('QA_PIXEL').bitwiseAnd(int('11111', 2)).eq(0);
     saturationMask = image.select('QA_RADSAT').eq(0);
 

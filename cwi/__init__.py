@@ -1,3 +1,3 @@
-from cwi.cmasking import *
-from cwi.collections import *
-from cwi.classifier import *
+from cwi.server.cmasking import *
+from cwi.server.collections import *
+from cwi.server.classifier import *
